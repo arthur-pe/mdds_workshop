@@ -1,0 +1,29 @@
+seed : 1
+
+manifold_dim: 2 # Intrinsic dim (to be renamed)
+embedding_dim : 3 # Embedding dim (MDDS's dynamics can be of a different dimension than the number of data neurons).
+
+frobenius_penalty: 0.1 # Loss = ||data - mdds|| + frobenius_penalty*sum(LieBrackets)
+
+batch_prop: 0.1 # What fraction of the data to use in each iteration (i.e. minibatch)
+max_iterations: 20000
+
+learning_rate: 0.001 # 0.05 - 0.0001
+weight_decay: 0.1 # Regularization on the model's parameters (0, 0.1 or 1.0)
+min_std_test_loss: 0.0001
+min_test_iterations: 10 # If std of test_loss over the past min_test_iterations is less than min_std_test_loss then exit.
+
+test_frequency : 100 # Number of iterations inbetween each plots update
+
+# ODE solver hyperparameters (see Driffrax)
+rtol: 0.001
+atol: 0.0001
+max_steps_solver: 1000
+
+# If data has T time bins then the controls (i.e. c's) will be a linear interpolation of controls_interpolation_freq * T points
+controls_interpolation_freq: 0.2
+
+freq_reset_controls: 50 # Some trajectories get stuck in local minima, so we reset controls every freq_reset_controls iterations
+min_std_reset_controls: 0.01 # We stop doing that when we get close to the final manifold
+
+optimized: ['controls', 'vector_fields', 'decoder'] # Which of ['controls', 'vector_fields', 'decoder'] to optimize
