@@ -247,7 +247,7 @@ def fit(data, condition, manifold_dim, embedding_dim,
                 xs_vfs = np.array(xs_vfs) ; xs_vfs[..., -1] = 0.5'''
                 #xs_vfs, vfs = ys_vfs, vfs.swapaxes(-2, -1)
                 xs_vfs, vfs = xs_vfs @ projection, vfs @ projection
-                plot_vector_fields(ax_giga, xs_vfs, vfs)
+                #plot_vector_fields(ax_giga, xs_vfs, vfs)
 
                 #for time_mask_temp, alpha, linestyle in zip([time_mask, not_time_mask], [1.0, 0.5], ['-', 'dotted']):
                 for time_mask_temp, alpha, linestyle in zip([time_mask], [1.0], ['-']):
@@ -260,6 +260,8 @@ def fit(data, condition, manifold_dim, embedding_dim,
                 #match_axes_lim(ax_giga, axs[1, 0])
                 set_box_aspect(ax_giga)
 
+            ax_giga.set_title('Inferred manifold')
+
             # ===== Jacobian / Weights =====
             Js = (jax.jacrev(model['vector_fields'].F)(model['vector_fields'].get_initial_state())/jnp.linalg.norm(model['vector_fields'].F(model['vector_fields'].get_initial_state()), axis=0)[jnp.newaxis, :, jnp.newaxis]).transpose(1, 0, 2)
             #Js = model['vector_fields'].Ws
@@ -268,6 +270,10 @@ def fit(data, condition, manifold_dim, embedding_dim,
             plot_jac(axs_jac, Js)
             plot_jac(axs_jac_schur, Js_schur)
             plot_eigs(axs_jac_eig, Js)
+
+            for i, (J, ax) in enumerate(zip(Js, axs_jac)): ax.set_title(f'Jacobian $f_{i}$', fontsize=12, zorder=10)
+            for i, (J, ax) in enumerate(zip(Js, axs_jac_schur)): ax.set_title(f'Schur $f_{i}$', fontsize=12, zorder=10)
+            for i, (J, ax) in enumerate(zip(Js, axs_jac_eig)): ax.set_title(f'Eigenspectrum $f_{i}$', fontsize=12, zorder=10)
 
             # ===== Loss =====
             var_exp = 1-np.array(ls_data_test)
