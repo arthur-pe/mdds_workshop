@@ -2,6 +2,7 @@ import numpy as np
 
 from .build import *
 from mdds.plotting.plotting import *
+from .initialization import initialize
 from .utils import reset_controls, decoder_vmap, split_model, load_model
 #from .loss import loss, loss_grad
 from .projected_grad.loss import loss, loss_grad, loss_
@@ -70,6 +71,9 @@ def fit(data, condition, manifold_dim, embedding_dim,
                         vector_fields_class, vector_fields_hyperparameters, data,
                         None if embedding_dim == data.shape[-1] else decoder_key)
 
+    #key, subkey = random.split(key)
+    #model = initialize(subkey, model, jnp.linspace(t0_data, t1, time_dim), data)
+
     # ===== Other stuff =====
     model_diff, model_static = split_model(model, optimized)
     optimizer, opt_state = build_optimizer(model_diff, learning_rate, weight_decay)
@@ -81,9 +85,9 @@ def fit(data, condition, manifold_dim, embedding_dim,
     model = load_model(model, load_dir, '/model.eqx', optimized)#, load_model(opt_state, load_dir, '/opt_state.eqx')
 
     # ===== To build inferred manifold =====
-    saveat_test = jnp.stack([jnp.linspace(t0_data, t1, mesh_size) for _ in range(mesh_size)])
+    saveat_test = jnp.stack([jnp.linspace(t0, t1, mesh_size) for _ in range(mesh_size)])
 
-    controls_test = build_control(jnp.linspace(t0, t1, mesh_size), get_grid_hypersphere(mesh_size, manifold_dim))
+    controls_test = build_control(jnp.linspace(t0, t1, mesh_size), get_grid_hypersphere(mesh_size, manifold_dim)*1.5)
 
     # ===== Plot stuff =====
     utils.set_font(font_color=foreground_color, font_size=20)
@@ -103,7 +107,7 @@ def fit(data, condition, manifold_dim, embedding_dim,
 
     data_start = np.argmax(data_time_mask, axis=1)
     increment = jax.vmap(random.randint, in_axes=(0, None, 0, None))(random.split(key, trial_dim), (1,), data_start, time_dim)[:, 0]
-    max_time_ids_0 = data_start + 2 #+ increment
+    max_time_ids_0 = data_start + 2000 #+ increment
 
     for iteration in iterator:
 
@@ -225,20 +229,34 @@ def fit(data, condition, manifold_dim, embedding_dim,
                                              jnp.arange(mesh_size).astype(int), jnp.arange(neuron_dim).astype(int), jnp.ones(saveat_test.shape[0:2], dtype=bool), 0, subkey)
                 xs_manifold = decoder_vmap(model['decoder'], solution_manifold.ys)
 
-                import umap
+                '''import umap
                 um = umap.UMAP(n_components=3, n_neighbors=150)
                 #um.fit(xs_manifold.reshape(-1, xs_manifold.shape[-1]))
                 um.fit(data[::5].reshape(-1, xs_manifold.shape[-1]))
-                xs_manifold_pcs = um.transform(xs_manifold.reshape(-1, xs_manifold.shape[-1])).reshape(list(xs_manifold.shape[:2])+[3])#xs_manifold @ projection
+                xs_manifold_pcs = um.transform(xs_manifold.reshape(-1, xs_manifold.shape[-1])).reshape(list(xs_manifold.shape[:2])+[3])'''
+                xs_manifold_pcs = xs_manifold @ projection
 
                 #projection = get_pca_projection(ys_manifold) if embedding_dim != 3 else jnp.eye(neuron_dim)
                 plot_manifold(ax_giga, xs_manifold_pcs, cmap=cmap_manifold)
+
+                # ===== Vector field plot =====
+                ys_vfs = solution_manifold.ys[::solution_manifold.ys.shape[0]//12, solution_manifold.ys.shape[0]//5::solution_manifold.ys.shape[0]//5]
+                vfs = eqx.filter_vmap(eqx.filter_vmap(model['vector_fields'].F))(ys_vfs)
+                dec = lambda x: model['decoder'](x[jnp.newaxis, ...], slice(None))[0]
+                xs_vfs, vfs = jax.vmap(jax.vmap(jax.vmap(jax.jvp, in_axes=(None, None, -1)), in_axes=(None, 0, 0)), in_axes=(None, 0, 0))(dec, (ys_vfs,), (vfs,))
+                xs_vfs = xs_vfs[..., 0, :]
+                '''vfs = np.array(vfs) ; vfs[..., -1] = 0.0
+                xs_vfs = np.array(xs_vfs) ; xs_vfs[..., -1] = 0.5'''
+                #xs_vfs, vfs = ys_vfs, vfs.swapaxes(-2, -1)
+                xs_vfs, vfs = xs_vfs @ projection, vfs @ projection
+                plot_vector_fields(ax_giga, xs_vfs, vfs)
 
                 #for time_mask_temp, alpha, linestyle in zip([time_mask, not_time_mask], [1.0, 0.5], ['-', 'dotted']):
                 for time_mask_temp, alpha, linestyle in zip([time_mask], [1.0], ['-']):
                     xs_temp = xs#np.where(time_mask_temp[..., np.newaxis], xs, np.nan)
                     xs_per_condition = np.stack([xs_temp[condition == c][0] for c in unique_conditions])
-                    temp = um.transform(xs_per_condition.reshape(-1, xs_per_condition.shape[-1])).reshape(list(xs_per_condition.shape[:2])+[3])
+                    #temp = um.transform(xs_per_condition.reshape(-1, xs_per_condition.shape[-1])).reshape(list(xs_per_condition.shape[:2])+[3])
+                    temp = xs_per_condition @ projection
                     plot_trajectories(ax_giga, temp, unique_conditions, alpha=alpha, linestyle=linestyle, cla=False, cmap=cmap_condition)
 
                 #match_axes_lim(ax_giga, axs[1, 0])
@@ -246,7 +264,7 @@ def fit(data, condition, manifold_dim, embedding_dim,
 
             # ===== Jacobian / Weights =====
             Js = (jax.jacrev(model['vector_fields'].F)(model['vector_fields'].get_initial_state())/jnp.linalg.norm(model['vector_fields'].F(model['vector_fields'].get_initial_state()), axis=0)[jnp.newaxis, :, jnp.newaxis]).transpose(1, 0, 2)
-            Js = model['vector_fields'].Ws
+            #Js = model['vector_fields'].Ws
             Js_schur = np.stack([scipy.linalg.schur(J)[0] for J in Js]) + np.tril(np.full((embedding_dim, embedding_dim), np.nan), k=-2)
 
             plot_jac(axs_jac, Js)
@@ -268,7 +286,11 @@ def fit(data, condition, manifold_dim, embedding_dim,
                 np.save(save_dir+'/data_estimate.npy', xs)
                 np.save(save_dir+'/latent_factors.npy', cs_integrated[:, -time_dim:])
                 np.save(save_dir+'/ambient_factors.npy', ys)
-                if manifold_dim>=2: np.save(save_dir+'/manifold.npy', xs_manifold)
+                np.save(save_dir+'/Js.npy', Js)
+                if manifold_dim>=2:
+                    np.save(save_dir+'/manifold.npy', xs_manifold)
+                    np.save(save_dir+'/xs_vfs.npy', xs_vfs)
+                    np.save(save_dir+'/vfs.npy', vfs)
                 eqx.tree_serialise_leaves(save_dir + '/model.eqx', model)
                 eqx.tree_serialise_leaves(save_dir + '/opt_state.eqx', opt_state)
 
@@ -369,7 +391,7 @@ def fit(data, condition, manifold_dim, embedding_dim,
         # ===== Update =====
         grads = tree_map(project_grad, grads, grads_constraint, frobenius_penalty) #if (iteration // 500) % 2 == 0  else tree_map(project_grad, grads_constraint, grads)
         #grads = eqx.tree_at(lambda g: g['vector_fields'], grads, jax.tree_util.tree_map(lambda x: 100000*x, grads['vector_fields']))
-        updates, opt_state = optimizer.update(grads, opt_state, model_diff)
+        updates, opt_state = optimizer.update(eqx.filter(grads, eqx.is_array), eqx.filter(opt_state, eqx.is_array), eqx.filter(model_diff, eqx.is_array))
         '''updates, opt_state = optimizer.update(eqx.filter(grads, eqx.is_array), eqx.filter(opt_state, eqx.is_array), eqx.filter(model_diff, eqx.is_array), value=l, grad=grads, value_fn=partial(loss_,
                                                                                                                   stepsize_controller=stepsize_controller,
                                                                                                                   saveat=saveat, solver=solver, t0=t0,

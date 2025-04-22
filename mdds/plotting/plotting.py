@@ -1,3 +1,4 @@
+import mdds.plotting.utils
 from mdds.plotting import utils
 
 import matplotlib
@@ -100,7 +101,7 @@ def plot_var_exp_hline_cond_avg(ax, data, condition, color=(1.0, 1.0, 0.1), line
     ax.axhline(1-data_sorted_per_cond/nanvar(data), linestyle=linestyle, color=color, label='Cond. Avg')
 
 
-def plot_trajectories(ax, xs, condition, trials_plotted=None, cmap=trajectory_cmap, alpha=1.0, linestyle='-', zorder=3, cla=True):
+def plot_trajectories(ax, xs, condition, trials_plotted=None, cmap=trajectory_cmap, alpha=1.0, linestyle='-', linewidth=1.0, zorder=3, cla=True):
 
     if cla: ax.cla()
 
@@ -108,7 +109,7 @@ def plot_trajectories(ax, xs, condition, trials_plotted=None, cmap=trajectory_cm
 
     for trial in range(0, xs.shape[0], xs.shape[0]//trials_plotted):
         ax.plot(xs[trial, :, 0], xs[trial, :, 1], xs[trial, :, 2], zorder=zorder,
-                color=cmap(condition[trial]), alpha=alpha, linestyle=linestyle)
+                color=cmap(condition[trial]), alpha=alpha, linestyle=linestyle, linewidth=linewidth)
         '''ax.scatter(xs[trial, :, 0], xs[trial, :, 1], xs[trial, :, 2], zorder=zorder+1,
                 color=cmap(trial/xs.shape[0]), alpha=0.3)'''
 
@@ -145,18 +146,20 @@ def normalize(ts, min_t, max_t):
 
 def plot_manifold(ax, xs, cmap=manifold_cmap,
                        alpha=0.5, linewidth=2.0, edgecolor=(0.2, 0.2, 0.2),
+                        gridlines=True,
                        ccount=6, rcount=6,
-                       zorder=2, scatter=True, cla=True):
+                       zorder=2, scatter=False, cla=True):
 
     if cla: ax.cla()
 
-    min_alpha, max_alpha = 0.0, 0.9
+    min_alpha, max_alpha = 0.0, 0.5
     alpha_decay = 1 - np.exp(np.linspace(-5, 0, xs.shape[0]))
     alpha_decay = normalize(alpha_decay, min_alpha, max_alpha)
 
     gradient_ts = np.linspace(0, 1, xs.shape[1])
     colors = cmap(np.tile(gradient_ts, (xs.shape[0], 1)))
-    #colors[..., 3] = np.tile(alpha_decay, (xs.shape[1], 1))
+    colors[..., 3] = np.tile(alpha_decay, (xs.shape[1], 1))
+    #colors[..., 3] = 0.2
 
     # ===== Surface =====
     '''ax.plot_surface(xs[..., 0], xs[..., 1], xs[..., 2],
@@ -181,29 +184,37 @@ def plot_manifold(ax, xs, cmap=manifold_cmap,
                         linewidth=0.02,
                         ccount=xs.shape[0], rcount=xs.shape[1],
                         shade=False,
+                        #alpha=0.1,
                         zorder=zorder)
-    '''# ===== Grid lines =====
-    min_alpha, max_alpha = 0.0, 1.0
-    alpha_decay = 1 - np.exp(np.linspace(-5, 0, xs.shape[0]))
-    alpha_decay = normalize(alpha_decay, min_alpha, max_alpha)
 
-    colors[..., 3] = np.tile(alpha_decay, (xs.shape[1], 1))
+    if gridlines:
+        # ===== Grid lines =====
+        min_alpha, max_alpha = 0.0, 1.0
+        alpha_decay = 1 - np.exp(np.linspace(-5, 0, xs.shape[0]))
+        alpha_decay = normalize(alpha_decay, min_alpha, max_alpha)
 
-    cmap = utils.set_saturation(cmap, 0.9)
-    gradient_ts = np.linspace(0, 1, xs.shape[0])
-    colors = cmap(np.tile(gradient_ts, (xs.shape[1], 1)))
-    colors[..., 3] = np.tile(alpha_decay, (xs.shape[1], 1))
+        #colors[..., 3] = np.tile(alpha_decay, (xs.shape[1], 1))
 
-    cmap_alpha = utils.get_cmap_interpolated(*colors[0, :])
-    # ====== Lines =====
-    for i in range(0, xs.shape[0], xs.shape[0]//rcount):
-        utils.plot_with_gradient_3d(ax, xs[i, :, 0], xs[i, :, 1], xs[i, :, 2],
-                                    gradient=gradient_ts, cmap=cmap_alpha, set_lim=False, zorder=zorder+0.5, alpha=None)
+        cmap = utils.set_saturation(cmap, 0.9)
+        gradient_ts = np.linspace(0, 1, xs.shape[0])
+        colors = cmap(np.tile(gradient_ts, (xs.shape[1], 1)))
+        colors[..., 3] = np.tile(alpha_decay, (xs.shape[1], 1))
 
-    # ====== Circle =====
-    for i in range(0, xs.shape[1], xs.shape[1]//ccount):
-        ax.plot(xs[:, i, 0], xs[:, i, 1], xs[:, i, 2], zorder=zorder+0.5, color=colors[0, i])
-    #ax.plot(xs[:, -1, 0], xs[:, -1, 1], xs[:, -1, 2], zorder=zorder+0.5, color=colors[0, -1, :3])'''
+        cmap_alpha = utils.get_cmap_interpolated(*colors[0, :])
+        # ====== Lines =====
+        for i in range(0, xs.shape[0], xs.shape[0]//rcount):
+            utils.plot_with_gradient_3d(ax, xs[i, :, 0], xs[i, :, 1], xs[i, :, 2],
+                                        gradient=gradient_ts, cmap=cmap_alpha, set_lim=False, zorder=zorder+0.5, alpha=None)
+
+        #cmap_alpha = utils.get_cmap_interpolated(*colors[0, :])
+        # ====== Circle =====
+        for i in range(0, xs.shape[1], xs.shape[1]//ccount):
+            #ax.plot(xs[:, i, 0], xs[:, i, 1], xs[:, i, 2], zorder=zorder+0.5, color=colors[0, i])
+            cmap_ = mdds.plotting.utils.get_cmap_interpolated(colors[0, i], colors[0, i])
+            utils.plot_with_gradient_3d(ax, xs[:, i, 0], xs[:, i, 1], xs[:, i, 2],
+                                        gradient=np.ones(xs.shape[0]), cmap=cmap_, set_lim=False, zorder=zorder + 0.5,
+                                        alpha=None)
+        #ax.plot(xs[:, -1, 0], xs[:, -1, 1], xs[:, -1, 2], zorder=zorder+0.5, color=colors[0, -1, :3])
 
 
 def add_vertical_axes(ax, number_axes, tick_size=8, spacing=0.15):
@@ -315,8 +326,19 @@ def plot_2d_controls(ax, xs, condition, trials_plotted=100, cmap=trajectory_cmap
     if label:
         ax.set_xlabel(r'$\mathregular{\int c_1}$'), ax.set_ylabel(r'$\mathregular{\int c_2}$')
 
+def plot_vector_fields(ax, xs, vfs, cmap=matplotlib.colormaps['Set2']):
 
-def get_axes(cols, rows, color_background, computed_zorder=False):
+    xs.reshape(-1, xs.shape[-1])
+
+    for i, vf in enumerate(vfs.transpose(2, 0, 1, 3)):
+        xs_ = xs.reshape(-1, xs.shape[-1]).T
+        vf_ = vf.reshape(-1, vf.shape[-1]).T*0.1
+        vf_ = np.stack([xs_, xs_ + vf_], axis=-2)
+        for vf in vf_.transpose(2, 0, 1):
+            ax.plot(*vf, color=cmap(i), linewidth=1.5)
+
+
+def get_axes(cols, rows, color_background, computed_zorder=True):
 
     fig = plt.figure(figsize=(cols*4,rows*4), constrained_layout=True, dpi=70)
     gs = fig.add_gridspec(ncols=cols,nrows=rows)

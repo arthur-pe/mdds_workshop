@@ -150,7 +150,7 @@ def losses(model, stepsize_controller, saveat, solver, t0, intrinsic_noise, extr
     #l_vf = jnp.mean(jnp.abs(jax.vmap(jax.vmap(vector_fields.F_norm))(x)))
 
     l_vf = jnp.abs(jax.vmap(vector_fields.F)(ys.reshape(-1, ys.shape[-1]))).mean()
-    l = (l_data+ l_controls*0.01  + l_vf*0.01, l_lie_bracket)  # + l_lie_bracket*0.1 + l_lie_bracket*0.001 + frobenius_penalty*0.01 + l_vf*0.01
+    l = (l_data, l_lie_bracket)  # + l_controls*0.1  + l_vf*0.01 + l_lie_bracket*0.1 + l_lie_bracket*0.001 + frobenius_penalty*0.01 + l_vf*0.01
 
     mean_variance = mean_var(ys_decoded_masked, data_masked, time_mask)
 

@@ -210,12 +210,12 @@ def get_ax_2d(figsize=(4, 4), constrained_layout=True, dpi=100):
     return ax
 
 
-def get_ax_gridspec(rows, columns, size_ax=4, axs_3d=(), axs_ignored=()):
+def get_ax_gridspec(rows, columns, size_ax=4, axs_3d=(), axs_ignored=(), cols_3d=(), rows_3d=(), dpi=80):
 
-    fig = plt.figure(figsize=(columns*size_ax,rows*size_ax), constrained_layout=True, dpi=80)
+    fig = plt.figure(figsize=(columns*size_ax,rows*size_ax), constrained_layout=True, dpi=dpi)
     gs = fig.add_gridspec(ncols=columns,nrows=rows)
 
-    axs = [[fig.add_subplot(gs[i,j], projection=('3d' if [i,j] in axs_3d else None)) for i in range(rows) if [i,j] not in axs_ignored] for j in range(columns)]
+    axs = [[fig.add_subplot(gs[i,j], projection=('3d' if [i,j] in axs_3d or j in cols_3d or i in rows_3d else None)) for i in range(rows) if [i,j] not in axs_ignored] for j in range(columns)]
 
     return axs, gs, fig
 

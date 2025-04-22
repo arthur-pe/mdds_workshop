@@ -26,8 +26,8 @@ def build_model(t0, t1, trial_dim, neuron_dim, embedding_dim, manifold_dim, mode
 
     #subkeys = random.split(model_key, trial_dim)
     key, subkey = random.split(model_key)
-    controls = build_low_rank_control(control_ts, manifold_dim, trial_dim, 10, subkey)
-    #controls = build_control(control_ts, jnp.ones((trial_dim, manifold_dim)), subkey)
+    #controls = build_low_rank_control(control_ts, manifold_dim, trial_dim, 10, subkey)
+    controls = build_control(control_ts, jnp.ones((trial_dim, manifold_dim)), subkey)
 
     decoder = build_decoder(embedding_dim, neuron_dim, decoder_key, data)
 
@@ -50,6 +50,6 @@ def build_optimizer(model, learning_rate, weight_decay):
         optimizer = optax.adam(learning_rate=learning_rate, nesterov=True)
 
     #optimizer = optax.chain(optimizer, optax.clip_by_global_norm(1.0))
-    opt_state = optimizer.init(eqx.filter(model, eqx.is_inexact_array))
+    opt_state = optimizer.init(eqx.filter(model, eqx.is_array))
 
     return optimizer, opt_state

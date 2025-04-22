@@ -91,8 +91,8 @@ class BaseMDDS(eqx.Module):
         :param x: (dim) state
         :return: (intrinsic_dim x intrinsic_dim x intrinsic_dim x dim) the torsion tensor"""
 
-        Js = jax.jacrev(self.F_norm)(x)
-        Fs = self.F_norm(x)
+        Js = jax.jacrev(self.F)(x)
+        Fs = self.F(x)
 
         J_Xs = jax.vmap(jnp.matmul, in_axes=(0, None))(Js, Fs)
 
@@ -110,8 +110,8 @@ class BaseMDDS(eqx.Module):
         :param x: (dim) state
         :return: (dim x intrinsic_dim x intrinsic_dim) the Lie bracket tensor"""
 
-        Js = jax.jacrev(self.F_norm)(x)
-        Fs = self.F_norm(x)
+        Js = jax.jacrev(self.F)(x)
+        Fs = self.F(x)
 
         J_Xs = jax.vmap(jnp.matmul, in_axes=(0, None))(Js, Fs)
 
@@ -131,7 +131,7 @@ class BaseMDDS(eqx.Module):
 
         q = basis @ basis.T
 
-        #q = q.at[jnp.diag_indices(q.shape[0])].add(jnp.finfo(basis).eps)
+        q = q.at[jnp.diag_indices(q.shape[0])].add(jnp.finfo(basis).eps)
 
         projection = basis.T @ jnp.linalg.inv(q) @ basis
 
