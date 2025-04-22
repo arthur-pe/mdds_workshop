@@ -19,7 +19,7 @@ setup(
     url='https://github.com/arthur-pe/mdds',
     author='Arthur Pellegrino',
     license='MIT',
-    install_requires=['jax',
+    install_requires=['jax==0.4.35',
                       'equinox',
                       'quax',
                       'diffrax',
