@@ -85,7 +85,7 @@ def fit(data, condition, manifold_dim, embedding_dim,
     # ===== To build inferred manifold =====
     saveat_test = jnp.stack([jnp.linspace(t0, t1, mesh_size) for _ in range(mesh_size)])
 
-    controls_test = build_control(jnp.linspace(t0, t1, mesh_size), get_grid_hypersphere(mesh_size, manifold_dim)*1.5)
+    controls_test = build_control(jnp.linspace(t0, t1, mesh_size), get_grid_hypersphere(mesh_size, manifold_dim))
 
     # ===== Plot stuff =====
     utils.set_font(font_color=foreground_color, font_size=20)
