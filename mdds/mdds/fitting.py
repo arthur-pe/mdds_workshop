@@ -210,11 +210,11 @@ def fit(data, condition, manifold_dim, embedding_dim,
                 max_c_test = jnp.nanmax(jnp.linalg.norm(cs_test_integrated, axis=-1))
                 std_c_test = jnp.nanstd(jnp.linalg.norm(cs_test_integrated, axis=-1))
                 mean_c_test = jnp.nanmean(jnp.linalg.norm(cs_test_integrated, axis=-1))
-                #std_c_test = jnp.nanstd(controls_test.interpolator.ys, axis=(0, 1))
+                std_c_test = jnp.nanstd(controls_test.interpolator.ys, axis=(0, 1))
                 mean_c_test = jnp.nanmean(controls_test.interpolator.ys, axis=(0, 1))
                 c_test = (controls_test.interpolator.ys-mean_c_test)/std_c_test#/(t1 - t0) # this should be divided by the integral
                 #print(max_c_test, jnp.mean(c_test, axis=(0, 1)), np.std(c_test, axis=(0, 1)), jnp.max(c_test, axis=(0, 1)))
-                #controls_test = eqx.tree_at(lambda controls_: controls_.interpolator.ys, controls_test, 0.5*c_test*std_c+mean_c)
+                controls_test = eqx.tree_at(lambda controls_: controls_.interpolator.ys, controls_test, 0.5*c_test*std_c+mean_c)
 
                 '''max_c = jnp.quantile(jnp.abs(cs_integrated), 0.99, axis=(0, 1))
                 c_test = controls_test.interpolator.ys / jnp.max(jnp.abs(controls_test.interpolator.ys), axis=(0, 1)) / (t1 - t0)
@@ -272,8 +272,8 @@ def fit(data, condition, manifold_dim, embedding_dim,
             plot_eigs(axs_jac_eig, Js)
 
             for i, (J, ax) in enumerate(zip(Js, axs_jac)): ax.set_title(f'Jacobian $f_{i}$', fontsize=12, zorder=10)
-            for i, (J, ax) in enumerate(zip(Js, axs_jac_schur)): ax.set_title(f'Schur $f_{i}$', fontsize=12, zorder=10)
-            for i, (J, ax) in enumerate(zip(Js, axs_jac_eig)): ax.set_title(f'Eigenspectrum $f_{i}$', fontsize=12, zorder=10)
+            for i, (J, ax) in enumerate(zip(Js, axs_jac_schur)): ax.set_title(f'Schur $J_{i}$', fontsize=12, zorder=10)
+            for i, (J, ax) in enumerate(zip(Js, axs_jac_eig)): ax.set_title(f'Eigenspectrum $J_{i}$', fontsize=12, zorder=10)
 
             # ===== Loss =====
             var_exp = 1-np.array(ls_data_test)
