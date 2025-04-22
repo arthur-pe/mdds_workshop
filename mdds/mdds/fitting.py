@@ -2,10 +2,8 @@ import numpy as np
 
 from .build import *
 from mdds.plotting.plotting import *
-from .initialization import initialize
 from .utils import reset_controls, decoder_vmap, split_model, load_model
-#from .loss import loss, loss_grad
-from .projected_grad.loss import loss, loss_grad, loss_
+from .projected_grad.loss import loss, loss_grad
 from .projected_grad.grad import tree_map, project_grad
 
 from mdds.controls import get_grid_hypersphere, evaluate_control, batch_controls
